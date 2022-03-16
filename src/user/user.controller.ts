@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, NotFoundException } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -10,6 +10,13 @@ export class UserController {
   @Post()
   create(@Body() createUserDto: CreateUserDto) {
     return this.userService.create(createUserDto);
+  }
+
+  @Get(':email')
+  findByEmail(@Body() createdUserDto: CreateUserDto){
+    return this.userService.findByEmail(createdUserDto.email).catch((e) => {
+      throw new NotFoundException(e.message);
+  });
   }
 
   @Get()

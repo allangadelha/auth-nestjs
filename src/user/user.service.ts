@@ -18,10 +18,19 @@ export class UserService {
     const createdUser = await this.prisma.user.create({ data });
 
     return {
-      ...createUserDto,
+      ...createdUser,
       password: undefined
     };
   };
+
+  async findByEmail(email: string) {
+    const data = await this.prisma.user.findUnique({ where: { email } });
+
+    if(!data) {
+      throw Error(`Dados para o EMAIL ${email} não encontrados`);
+    }
+    return data;
+  }
   
 
   findAll() {
