@@ -1,47 +1,47 @@
 import { Injectable } from '@nestjs/common';
-import { UserService } from 'src/user/user.service';
-import * as bcrypt from 'bcrypt'
-import { User } from 'src/user/entities/user.entity';
-import { UserPaylod } from './models/UserPayload';
 import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
+import { UnauthorizedError } from './errors/unauthorized.error';
+import { User } from '../user/entities/user.entity';
+import { UserService } from '../user/user.service';
+import { UserPayload } from './models/UserPayload';
 import { UserToken } from './models/UserToken';
 
 @Injectable()
 export class AuthService {
-    constructor(
-        private readonly userService: UserService,
-        private readonly jwtService: JwtService
-    ) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly userService: UserService,
+  ) {}
 
-    login(user: User): UserToken {
-        const payload: UserPaylod = {
-            sub: user.id,
-            email: user.email,
-            name: user.name
-        }
+  async login(user: User): Promise<UserToken> {
+    const payload: UserPayload = {
+      sub: user.id,
+      email: user.email,
+      name: user.name,
+    };
 
-        const jwtToken = this.jwtService.sign(payload);
+    return {
+      access_token: this.jwtService.sign(payload),
+    };
+  }
 
+  async validateUser(email: string, password: string): Promise<User> {
+    const user = await this.userService.findByEmail(email);
+
+    if (user) {
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+
+      if (isPasswordValid) {
         return {
-            access_token: jwtToken
-        }
+          ...user,
+          password: undefined,
+        };
+      }
     }
 
-    async validateUser(email: string, password: string) {
-        const user = await this.userService.findByEmail(email);
-
-        if(user) {
-
-            const isPasswordValid = await bcrypt.compare(password, user.password);
-
-            if(isPasswordValid) {
-                return {
-                    ...user,
-                    password: undefined
-                }
-            }
-        }
-
-        throw new Error('Enderço de e-mail ou senha incorreta.');
-    }
+    throw new UnauthorizedError(
+      'Email address or password provided is incorrect.',
+    );
+  }
 }
